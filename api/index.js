@@ -7,7 +7,35 @@ const { Pool } = pkg;
 const app = express();
 const port = 3000;
 
-app.use(cors());
+import cors from "cors";
+
+import cors from "cors";
+
+const allowedOrigin = [
+  "http://localhost:5173",
+  "https://app.trackapp.se"  //placeholder for actual domain
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Tillåt mobilklienter & server-to-server (ingen origin header)
+    if (!origin) return callback(null, true);
+
+    if (origin === allowedOrigin) {
+      // Helt okej
+      return callback(null, true);
+    }
+
+    // Om det är en annan 517x-port → ge ett specifikt meddelande
+    if (origin.startsWith("http://localhost:517")) {
+      return callback(new Error("⚠️ Kör dev på port 5173, inte " + origin));
+    }
+
+    // Allt annat → blockeras
+    return callback(new Error("❌ Origin not allowed: " + origin));
+  }
+}));
+
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
