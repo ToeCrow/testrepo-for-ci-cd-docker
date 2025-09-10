@@ -1,9 +1,13 @@
 import express from 'express';
 import pkg from 'pg';
+import cors from 'cors';
+
 const { Pool } = pkg;
 
 const app = express();
 const port = 3000;
+
+app.use(cors());
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL
