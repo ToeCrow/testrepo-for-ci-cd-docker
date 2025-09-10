@@ -1,0 +1,40 @@
+# ---------------------------
+# Node.js
+# ---------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.env
+
+# ---------------------------
+# Docker
+# ---------------------------
+*.log
+docker-compose.override.yml
+*.pid
+*.sock
+*.pid.lock
+
+# ---------------------------
+# OS-specifikt
+# ---------------------------
+.DS_Store
+Thumbs.db
+
+# ---------------------------
+# VSCode
+# ---------------------------
+.vscode/
+
+# ---------------------------
+# Postgres data volym (om du mountat lokalt)
+# ---------------------------
+db_data/
+
+# ---------------------------
+# Byggprodukter (om du har någon build-folder)
+# ---------------------------
+dist/
+build/

@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:17
+    container_name: TrackApp_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: TrackApp
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    
+  api:
+    build: ./api
+    container_name: TrackApp_api
+    restart: always
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/TrackApp
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+
+volumes:
+  db_data:
