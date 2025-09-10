@@ -117,4 +117,26 @@ docker-compose down
 
 ```
 
+## Snabbguide: Starta API och databas
+
+Följ dessa kommandon i terminalen (från projektets root):
+
+```bash
+# 1. Stoppa alla tidigare containrar och rensa volymer (tömmer databasen)
+docker-compose down -v
+
+# 2. Bygg om API och databas utan cache
+docker-compose build --no-cache
+
+# 3. Starta containrar i bakgrunden
+docker-compose up -d
+
+# 4. Kontrollera att API:t körs
+docker-compose logs -f api
+
+# 5. Testa API i webbläsare eller Postman
+# Öppna: http://localhost:3000/orders
+
+# 6. Stoppa allt när du är klar
+docker-compose down
 
