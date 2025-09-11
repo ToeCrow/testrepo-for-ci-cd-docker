@@ -7,10 +7,6 @@ const { Pool } = pkg;
 const app = express();
 const port = 3000;
 
-import cors from "cors";
-
-import cors from "cors";
-
 const allowedOrigin = [
   "http://localhost:5173",
   "https://app.trackapp.se"  //placeholder for actual domain
