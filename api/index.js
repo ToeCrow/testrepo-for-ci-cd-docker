@@ -44,53 +44,75 @@ app.get('/orders', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-          r."Name" AS "rutt",
-          o."Id"::text AS "sändningsnr",
+          o."Id" AS "sändningsnr",
+          r."Code" AS "rutt",
 
           -- Expected Temp som objekt
           json_build_object(
-              'min', et."Min",
-              'max', et."Max"
+              'min', et."Min"::FLOAT, 
+              'max', et."Max"::FLOAT
           ) AS "expectedTemp",
 
-          -- Current Temp (senaste mätningen)
-          mt."Temp" AS "currentTemp",
+          -- Current Temp & Humidity (senaste mätningen)
+          COALESCE(mt."Temp"::FLOAT, 0) AS "currentTemp",
+          COALESCE(mt."Humidity"::FLOAT, 0) AS "currentHumidity",
 
-          -- Min/Max Temp från alla mätningar
-          MIN(mt."Temp") OVER (PARTITION BY o."Id") AS "minTempMeasured",
-          MAX(mt."Temp") OVER (PARTITION BY o."Id") AS "maxTempMeasured",
+          -- Min/Max Temp & Humidity från alla mätningar
+          COALESCE(MIN(mtemp."Temp")::FLOAT, 0) AS "minTempMeasured",
+          COALESCE(MAX(mtemp."Temp")::FLOAT, 0) AS "maxTempMeasured",
+          COALESCE(MIN(mtemp."Humidity")::FLOAT, 0) AS "minHumidityMeasured",
+          COALESCE(MAX(mtemp."Humidity")::FLOAT, 0) AS "maxHumidityMeasured",
 
           -- Expected Humidity som objekt
           json_build_object(
-              'min', em."Min",
-              'max', em."Max"
+              'min', em."Min"::FLOAT, 
+              'max', em."Max"::FLOAT
           ) AS "expectedHumidity",
 
-          -- Current Humidity (senaste mätningen)
-          mt."Humidity" AS "currentHumidity",
-
-          -- Min/Max Humidity från alla mätningar
-          MIN(mt."Humidity") OVER (PARTITION BY o."Id") AS "minHumidityMeasured",
-          MAX(mt."Humidity") OVER (PARTITION BY o."Id") AS "maxHumidityMeasured",
-
           -- Time outside range
-          tor."TimeMinutes" AS "timeOutsideRange",
+          COALESCE(tor."TimeMinutes", 0) AS "timeOutsideRange",
 
-          -- Status som objekt
+          -- Status som objekt (senaste status eller default "Mottagen")
           json_build_object(
-              'text', os."Status",
-              'timestamp', os."TimeStamp"::text
+              'text', COALESCE(os."Status", 'Mottagen'),
+              'timestamp', COALESCE(os."TimeStamp", CURRENT_TIMESTAMP)
           ) AS "status"
 
       FROM "Order" o
       LEFT JOIN "Route" r ON o."RouteId" = r."Id"
-      LEFT JOIN "expectedTemp" et ON o."ExpectedTempId" = et."Id"
-      LEFT JOIN "expectedMoist" em ON o."ExpectedMoistId" = em."Id"
-      LEFT JOIN "OrderStatus" os ON o."Id" = os."OrderId"
-      LEFT JOIN "MeasurementTemp" mt ON o."Id" = mt."OrderId"
+      LEFT JOIN "ExpectedTemp" et ON o."ExpectedTempId" = et."Id"
+      LEFT JOIN "ExpectedMoist" em ON o."ExpectedMoistId" = em."Id"
       LEFT JOIN "TimeOutsideRange" tor ON o."Id" = tor."OrderId"
-      ORDER BY o."Id";
 
+      -- Senaste mätningen
+      LEFT JOIN (
+          SELECT *
+          FROM (
+              SELECT *,
+                    ROW_NUMBER() OVER (PARTITION BY "OrderId" ORDER BY "CurrentTime" DESC) AS rn
+              FROM "MeasurementTemp"
+          ) sub
+          WHERE rn = 1
+      ) mt ON o."Id" = mt."OrderId"
+
+      -- Alla mätningar för min/max
+      LEFT JOIN "MeasurementTemp" mtemp ON o."Id" = mtemp."OrderId"
+
+      -- Senaste status
+      LEFT JOIN (
+          SELECT *
+          FROM (
+              SELECT *,
+                    ROW_NUMBER() OVER (PARTITION BY "OrderId" ORDER BY "TimeStamp" DESC) AS rn
+              FROM "OrderStatus"
+          ) sub
+          WHERE rn = 1
+      ) os ON o."Id" = os."OrderId"
+
+      GROUP BY 
+          o."Id", r."Code", et."Min", et."Max", em."Min", em."Max", mt."Temp", mt."Humidity", tor."TimeMinutes", os."Status", os."TimeStamp"
+
+      ORDER BY o."Id";
     `);
     res.json(result.rows);
   } catch (err) {

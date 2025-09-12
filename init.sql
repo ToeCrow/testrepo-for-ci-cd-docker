@@ -266,7 +266,7 @@ VALUES (10,'Lastad','2025-09-10 10:00');
 INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
 (10,'sensor-001',2.0,33,'2025-09-10 10:00'),
 (10,'sensor-001',2.5,35,'2025-09-10 10:30'),
-(10,'sensor-001',1.8,32,'2025-09-10 11:00');
+(10,'sensor-001',2.2,32,'2025-09-10 11:00');
 INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (10,0);
 
 -- Order 11
