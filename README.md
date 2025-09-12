@@ -55,6 +55,11 @@ docker-compose build --no-cache
 ```bash
 docker-compose up -d
 ```
+Om du får upp gammal data, så behöver man tvinga den att skapa en ny databas med:
+
+```bash
+docker-compose up --build -d
+```
 
 4. **Kontrollera att API\:t körs**:
 
@@ -77,23 +82,28 @@ Exempel på JSON-respons:
 ```json
 [
   {
-    "OrderId": 1,
-    "RouteName": "Stockholm",
-    "RouteCode": "STO",
-    "Sändningsnr": 123456,
-    "ExpectedTempMin": 2,
-    "ExpectedTempMax": 8,
-    "ExpectedHumidityMin": 30,
-    "ExpectedHumidityMax": 70,
-    "Transport": "Transport Name",
-    "SenderName": "Sender Name",
-    "RecipientName": "Recipient Name",
-    "Status": "Skapad",
-    "StatusTime": "2025-09-10T08:30:00.000Z",
-    "CurrentTemp": 5.0,
-    "CurrentHumidity": 55,
-    "TimeOutsideRange": 0
-  }
+    "sändningsnr": 1,
+    "rutt": "STO",
+    "expectedTemp": {
+      "min": 2,
+      "max": 8
+    },
+    "currentTemp": 4.8,
+    "currentHumidity": 53,
+    "minTempMeasured": 4.8,
+    "maxTempMeasured": 6.3,
+    "minHumidityMeasured": 53,
+    "maxHumidityMeasured": 57,
+    "expectedHumidity": {
+      "min": 30,
+      "max": 70
+    },
+    "timeOutsideRange": 0,
+    "status": {
+      "text": "Skapad",
+      "timestamp": "2025-09-10T08:30:00+00:00"
+    }
+  },
 ]
 ```
 
