@@ -56,9 +56,18 @@ app.get('/orders', async (req, res) => {
           rec."Name" AS "RecipientName",
           os."Status",
           os."TimeStamp" AS "StatusTime",
-          mt."Temp" AS "CurrentTemp",
-          mt."Humidity" AS "CurrentHumidity",
-          tor."TimeMinutes" AS "TimeOutsideRange"
+          tor."TimeMinutes" AS "TimeOutsideRange",
+
+          -- 🔥 temperatur-aggregation direkt här
+          MAX(mt."Temp") AS "MaxTempMeasured",
+          MIN(mt."Temp") AS "MinTempMeasured",
+          (ARRAY_AGG(mt."Temp" ORDER BY mt."TimeStamp" DESC))[1] AS "CurrentTemp",
+
+          -- luftfuktighet (om du har samma upplägg)
+          MAX(mt."Humidity") AS "MaxHumidityMeasured",
+          MIN(mt."Humidity") AS "MinHumidityMeasured",
+          (ARRAY_AGG(mt."Humidity" ORDER BY mt."TimeStamp" DESC))[1] AS "CurrentHumidity"
+
       FROM "Order" o
       LEFT JOIN "Route" r ON o."RouteId" = r."Id"
       LEFT JOIN "expectedTemp" et ON o."ExpectedTempId" = et."Id"
@@ -69,7 +78,13 @@ app.get('/orders', async (req, res) => {
       LEFT JOIN "OrderStatus" os ON o."Id" = os."OrderId"
       LEFT JOIN "MeasurementTemp" mt ON o."Id" = mt."OrderId"
       LEFT JOIN "TimeOutsideRange" tor ON o."Id" = tor."OrderId"
+
+      GROUP BY 
+          o."Id", r."Name", r."Code", et."Min", et."Max", em."Min", em."Max", 
+          t."Name", s."Name", rec."Name", os."Status", os."TimeStamp", tor."TimeMinutes"
+
       ORDER BY o."Id";
+
     `);
     res.json(result.rows);
   } catch (err) {
