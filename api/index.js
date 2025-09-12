@@ -43,47 +43,58 @@ app.get('/orders', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-          o."Id" AS "OrderId",
-          r."Name" AS "RouteName",
-          r."Code" AS "RouteCode",
-          o."Id" AS "Sändningsnr",
-          et."Min" AS "ExpectedTempMin",
-          et."Max" AS "ExpectedTempMax",
-          em."Min" AS "ExpectedHumidityMin",
-          em."Max" AS "ExpectedHumidityMax",
-          t."Name" AS "Transport",
-          s."Name" AS "SenderName",
-          rec."Name" AS "RecipientName",
-          os."Status",
-          os."TimeStamp" AS "StatusTime",
-          tor."TimeMinutes" AS "TimeOutsideRange",
+    o."Id" AS "OrderId",
+    r."Name" AS "RouteName",
+    r."Code" AS "RouteCode",
+    o."Id" AS "Sändningsnr",
 
-          -- 🔥 temperatur-aggregation direkt här
-          MAX(mt."Temp") AS "MaxTempMeasured",
-          MIN(mt."Temp") AS "MinTempMeasured",
-          (ARRAY_AGG(mt."Temp" ORDER BY mt."TimeStamp" DESC))[1] AS "CurrentTemp",
+    -- Expected Temp som objekt
+    json_build_object(
+        'min', et."Min",
+        'max', et."Max"
+    ) AS "expectedTemp",
 
-          -- luftfuktighet (om du har samma upplägg)
-          MAX(mt."Humidity") AS "MaxHumidityMeasured",
-          MIN(mt."Humidity") AS "MinHumidityMeasured",
-          (ARRAY_AGG(mt."Humidity" ORDER BY mt."TimeStamp" DESC))[1] AS "CurrentHumidity"
+    -- Current Temp (senaste mätningen)
+    mt."Temp" AS "currentTemp",
 
-      FROM "Order" o
-      LEFT JOIN "Route" r ON o."RouteId" = r."Id"
-      LEFT JOIN "expectedTemp" et ON o."ExpectedTempId" = et."Id"
-      LEFT JOIN "expectedMoist" em ON o."ExpectedMoistId" = em."Id"
-      LEFT JOIN "Transport" t ON o."TransportId" = t."Id"
-      LEFT JOIN "Sender" s ON o."SenderId" = s."Id"
-      LEFT JOIN "Recipient" rec ON o."RecipientId" = rec."Id"
-      LEFT JOIN "OrderStatus" os ON o."Id" = os."OrderId"
-      LEFT JOIN "MeasurementTemp" mt ON o."Id" = mt."OrderId"
-      LEFT JOIN "TimeOutsideRange" tor ON o."Id" = tor."OrderId"
+    -- Min/Max Temp från alla mätningar
+    MIN(mt."Temp") OVER (PARTITION BY o."Id") AS "minTempMeasured",
+    MAX(mt."Temp") OVER (PARTITION BY o."Id") AS "maxTempMeasured",
 
-      GROUP BY 
-          o."Id", r."Name", r."Code", et."Min", et."Max", em."Min", em."Max", 
-          t."Name", s."Name", rec."Name", os."Status", os."TimeStamp", tor."TimeMinutes"
+    -- Expected Humidity som objekt
+    json_build_object(
+        'min', em."Min",
+        'max', em."Max"
+    ) AS "expectedHumidity",
 
-      ORDER BY o."Id";
+    -- Current Humidity (senaste mätningen)
+    mt."Humidity" AS "currentHumidity",
+
+    -- Min/Max Humidity från alla mätningar
+    MIN(mt."Humidity") OVER (PARTITION BY o."Id") AS "minHumidityMeasured",
+    MAX(mt."Humidity") OVER (PARTITION BY o."Id") AS "maxHumidityMeasured",
+
+    -- Time outside range
+    tor."TimeMinutes" AS "timeOutsideRange",
+
+    -- Status som objekt
+    json_build_object(
+        'text', os."Status",
+        'timestamp', os."TimeStamp"
+    ) AS "status"
+
+FROM "Order" o
+LEFT JOIN "Route" r ON o."RouteId" = r."Id"
+LEFT JOIN "ExpectedTemp" et ON o."ExpectedTempId" = et."Id"
+LEFT JOIN "ExpectedMoist" em ON o."ExpectedMoistId" = em."Id"
+LEFT JOIN "Transport" t ON o."TransportId" = t."Id"
+LEFT JOIN "Sender" s ON o."SenderId" = s."Id"
+LEFT JOIN "Recipient" rec ON o."RecipientId" = rec."Id"
+LEFT JOIN "OrderStatus" os ON o."Id" = os."OrderId"
+LEFT JOIN "MeasurementTemp" mt ON o."Id" = mt."OrderId"
+LEFT JOIN "TimeOutsideRange" tor ON o."Id" = tor."OrderId"
+ORDER BY o."Id";
+
 
     `);
     res.json(result.rows);
