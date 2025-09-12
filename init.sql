@@ -10,7 +10,7 @@ CREATE TABLE "Route" (
 );
 
 -- EXPECTED TEMPERATURE
-CREATE TABLE "expectedTemp" (
+CREATE TABLE "ExpectedTemp" (
   "Id" SERIAL PRIMARY KEY,
   "Name" VARCHAR(50),
   "Min" DECIMAL(3,1),
@@ -18,7 +18,7 @@ CREATE TABLE "expectedTemp" (
 );
 
 -- EXPECTED HUMIDITY
-CREATE TABLE "expectedMoist" (
+CREATE TABLE "ExpectedMoist" (
   "Id" SERIAL PRIMARY KEY,
   "Name" VARCHAR(50),
   "Min" DECIMAL(3,1),
@@ -58,8 +58,8 @@ CREATE TABLE "Recipient" (
 CREATE TABLE "Order" (
   "Id" SERIAL PRIMARY KEY,
   "RouteId" INT REFERENCES "Route"("Id"),
-  "ExpectedTempId" INT REFERENCES "expectedTemp"("Id"),
-  "ExpectedMoistId" INT REFERENCES "expectedMoist"("Id"),
+  "ExpectedTempId" INT REFERENCES "ExpectedTemp"("Id"),
+  "ExpectedMoistId" INT REFERENCES "ExpectedMoist"("Id"),
   "TransportId" INT REFERENCES "Transport"("Id"),
   "SenderId" INT REFERENCES "Sender"("Id"),
   "RecipientId" INT REFERENCES "Recipient"("Id")
@@ -128,11 +128,11 @@ INSERT INTO "Route" ("Name", "Code") VALUES
 ('Gävle', 'GVX');
 
 -- EXPECTED TEMP
-INSERT INTO "expectedTemp" ("Name", "Min", "Max") VALUES
+INSERT INTO "ExpectedTemp" ("Name", "Min", "Max") VALUES
 ('Kylkedja temp', 2.0, 8.0);
 
 -- EXPECTED HUMIDITY
-INSERT INTO "expectedMoist" ("Name", "Min", "Max") VALUES
+INSERT INTO "ExpectedMoist" ("Name", "Min", "Max") VALUES
 ('Standard humidity', 30.0, 70.0);
 
 -- TRANSPORT
