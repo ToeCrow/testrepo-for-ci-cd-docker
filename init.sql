@@ -150,9 +150,9 @@ INSERT INTO "Postadress" ("Postnummer", "Postadress") VALUES
 
 -- SENDER
 INSERT INTO "Sender" ("PostadressId", "Name", "Adress1") VALUES
-(1, 'ICA Sverige AB', 'Kolonnvägen 20'),
-(2, 'Apotek Hjärtat AB', 'Fleminggatan 18'),
-(3, 'Coop Logistik AB', 'Terminalvägen 21');
+(1, 'ICA AB', 'Kolonnvägen 20'),
+(2, 'Hjärtat AB', 'Fleminggatan 18'),
+(3, 'Coop AB', 'Terminalvägen 21');
 
 -- RECIPIENT
 INSERT INTO "Recipient" ("PostadressId", "Name", "Adress1") VALUES
