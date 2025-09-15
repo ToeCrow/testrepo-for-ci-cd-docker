@@ -76,7 +76,20 @@ app.get('/orders', async (req, res) => {
           json_build_object(
               'text', COALESCE(os."Status", 'Mottagen'),
               'timestamp', COALESCE(os."TimeStamp", CURRENT_TIMESTAMP)
-          ) AS "status"
+          ) AS "status",
+
+          -- Transport som objekt
+          json_build_object(
+              'id', t."Id",
+              'name', t."Name"
+          ) AS "transport",
+
+          -- Sender som objekt
+          json_build_object(
+              'id', s."Id",
+              'name', s."Name",
+              'adress1', s."Adress1"
+          ) AS "sender"
 
       FROM "Order" o
       LEFT JOIN "Route" r ON o."RouteId" = r."Id"
@@ -109,17 +122,27 @@ app.get('/orders', async (req, res) => {
           WHERE rn = 1
       ) os ON o."Id" = os."OrderId"
 
+      -- Transport och Sender
+      LEFT JOIN "Transport" t ON o."TransportId" = t."Id"
+      LEFT JOIN "Sender" s ON o."SenderId" = s."Id"
+
       GROUP BY 
-          o."Id", r."Code", et."Min", et."Max", em."Min", em."Max", mt."Temp", mt."Humidity", tor."TimeMinutes", os."Status", os."TimeStamp"
+          o."Id", r."Code", et."Min", et."Max", em."Min", em."Max",
+          mt."Temp", mt."Humidity", tor."TimeMinutes",
+          os."Status", os."TimeStamp",
+          t."Id", t."Name",
+          s."Id", s."Name", s."Adress1"
 
       ORDER BY o."Id";
     `);
+
     res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 app.listen(port, () => {
   console.log(`API listening on port ${port}`);
