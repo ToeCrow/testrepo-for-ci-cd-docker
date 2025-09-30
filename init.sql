@@ -69,9 +69,16 @@ CREATE TABLE "Order" (
 CREATE TABLE "OrderStatus" (
   "Id" SERIAL PRIMARY KEY,
   "OrderId" INT REFERENCES "Order"("Id"),
-  "Status" VARCHAR(20),
+  "OrdersequenceId" INT REFERENCES "OrderSequence"("Id"),
   "TimeStamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ORDERSEQUENCES
+CREATE TABLE "OrderSequence" (
+  "Id" SERIAL PRIMARY KEY,
+  "Name" VARCHAR(50) UNIQUE NOT NULL,
+  "sequence" INT NOT NULL
+)
 
 -- SENSOR
 CREATE TABLE "Sensor" (
@@ -167,226 +174,152 @@ INSERT INTO "Recipient" ("PostadressId", "Name", "Adress1") VALUES
 INSERT INTO "Sensor" ("Id", "Name") VALUES
 ('sensor-001', 'Temp/Humidity Sensor 1');
 
+-- ORDERSEQUENCE
+INSERT INTO "OrderSequence" ("Name", "sequence") VALUES
+('Skapad', 1),
+('Lastad', 2),
+('Levererad', 3);
+('Åter', 4);
+
 -- =========================
--- Orders with measurements
+-- Orders with measurements (full status history)
 -- =========================
 
--- Order 1
+-- Order 1 (Skapad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (1,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (1,'Skapad','2025-09-10 08:30');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(1,'sensor-001',5.0,55,'2025-09-10 08:30'),
-(1,'sensor-001',6.3,57,'2025-09-10 09:00'),
-(1,'sensor-001',4.8,53,'2025-09-10 09:30');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (1,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(1,1,'2025-09-10 08:30'); -- Skapad
 
--- Order 2
+-- Order 2 (Lastad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (2,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (2,'Lastad','2025-09-10 09:15');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(2,'sensor-001',7.1,75,'2025-09-10 09:15'),
-(2,'sensor-001',8.0,78,'2025-09-10 09:45'),
-(2,'sensor-001',6.9,74,'2025-09-10 10:15');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (2,12);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(2,1,'2025-09-10 08:45'), -- Skapad
+(2,2,'2025-09-10 09:15'); -- Lastad
 
--- Order 3
+-- Order 3 (Levererad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (1,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (3,'Levererad','2025-09-10 11:30');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(3,'sensor-001',5.0,60,'2025-09-10 10:00'),
-(3,'sensor-001',5.5,61,'2025-09-10 10:30'),
-(3,'sensor-001',4.9,59,'2025-09-10 11:00');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (3,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(3,1,'2025-09-10 09:00'), -- Skapad
+(3,2,'2025-09-10 10:15'), -- Lastad
+(3,3,'2025-09-10 11:30'); -- Levererad
 
--- Order 4
+-- Order 4 (Skapad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (3,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (4,'Skapad','2025-09-10 08:00');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(4,'sensor-001',4.0,45,'2025-09-10 08:00'),
-(4,'sensor-001',4.5,47,'2025-09-10 08:30'),
-(4,'sensor-001',3.8,44,'2025-09-10 09:00');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (4,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(4,1,'2025-09-10 08:00');
 
--- Order 5
+-- Order 5 (Lastad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (4,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (5,'Lastad','2025-09-10 08:30');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(5,'sensor-001',6.4,62,'2025-09-10 08:30'),
-(5,'sensor-001',6.8,63,'2025-09-10 09:00'),
-(5,'sensor-001',6.0,61,'2025-09-10 09:30');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (5,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(5,1,'2025-09-10 08:15'),
+(5,2,'2025-09-10 08:30');
 
--- Order 6
+-- Order 6 (Skapad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (5,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (6,'Skapad','2025-09-10 09:00');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(6,'sensor-001',3.2,38,'2025-09-10 09:00'),
-(6,'sensor-001',3.6,40,'2025-09-10 09:30'),
-(6,'sensor-001',2.9,37,'2025-09-10 10:00');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (6,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(6,1,'2025-09-10 09:00');
 
--- Order 7
+-- Order 7 (Levererad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (2,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (7,'Levererad','2025-09-10 12:00');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(7,'sensor-001',6.8,59,'2025-09-10 10:30'),
-(7,'sensor-001',7.2,60,'2025-09-10 11:00'),
-(7,'sensor-001',6.5,58,'2025-09-10 11:30');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (7,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(7,1,'2025-09-10 10:30'),
+(7,2,'2025-09-10 11:00'),
+(7,3,'2025-09-10 12:00');
 
--- Order 8
+-- Order 8 (Lastad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (6,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (8,'Lastad','2025-09-10 09:15');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(8,'sensor-001',7.3,70,'2025-09-10 09:15'),
-(8,'sensor-001',7.6,72,'2025-09-10 09:45'),
-(8,'sensor-001',7.1,69,'2025-09-10 10:15');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (8,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(8,1,'2025-09-10 09:00'),
+(8,2,'2025-09-10 09:15');
 
--- Order 9
+-- Order 9 (Skapad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (7,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (9,'Skapad','2025-09-10 09:30');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(9,'sensor-001',5.0,48,'2025-09-10 09:30'),
-(9,'sensor-001',5.4,50,'2025-09-10 10:00'),
-(9,'sensor-001',4.7,47,'2025-09-10 10:30');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (9,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(9,1,'2025-09-10 09:30');
 
--- Order 10
+-- Order 10 (Lastad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (8,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (10,'Lastad','2025-09-10 10:00');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(10,'sensor-001',2.0,33,'2025-09-10 10:00'),
-(10,'sensor-001',2.5,35,'2025-09-10 10:30'),
-(10,'sensor-001',2.2,32,'2025-09-10 11:00');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (10,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(10,1,'2025-09-10 09:45'),
+(10,2,'2025-09-10 10:00');
 
--- Order 11
+-- Order 11 (Skapad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (9,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (11,'Skapad','2025-09-10 10:15');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(11,'sensor-001',8.0,69,'2025-09-10 10:15'),
-(11,'sensor-001',8.4,70,'2025-09-10 10:45'),
-(11,'sensor-001',7.8,68,'2025-09-10 11:15');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (11,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(11,1,'2025-09-10 10:15');
 
--- Order 12
+-- Order 12 (Åter)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (2,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (12,'Åter','2025-09-10 12:15');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(12,'sensor-001',3.2,69,'2025-09-10 10:30'),
-(12,'sensor-001',3.5,70,'2025-09-10 11:00'),
-(12,'sensor-001',2.9,68,'2025-09-10 11:30');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (12,12);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(12,1,'2025-09-10 10:30'),
+(12,2,'2025-09-10 11:00'),
+(12,3,'2025-09-10 11:30'),
+(12,4,'2025-09-10 12:15');
 
--- Order 13
+-- Order 13 (Lastad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (10,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (13,'Lastad','2025-09-10 10:30');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(13,'sensor-001',6.0,61,'2025-09-10 10:30'),
-(13,'sensor-001',6.3,62,'2025-09-10 11:00'),
-(13,'sensor-001',5.8,60,'2025-09-10 11:30');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (13,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(13,1,'2025-09-10 10:15'),
+(13,2,'2025-09-10 10:30');
 
--- Order 14
+-- Order 14 (Skapad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (11,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (14,'Skapad','2025-09-10 10:45');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(14,'sensor-001',9.0,80,'2025-09-10 10:45'),
-(14,'sensor-001',9.5,82,'2025-09-10 11:15'),
-(14,'sensor-001',8.8,79,'2025-09-10 11:45');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (14,25);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(14,1,'2025-09-10 10:45');
 
--- Order 15
+-- Order 15 (Lastad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (12,1,1,1,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (15,'Lastad','2025-09-10 11:00');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(15,'sensor-001',5.5,50,'2025-09-10 11:00'),
-(15,'sensor-001',5.9,51,'2025-09-10 11:30'),
-(15,'sensor-001',5.2,49,'2025-09-10 12:00');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (15,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(15,1,'2025-09-10 10:45'),
+(15,2,'2025-09-10 11:00');
 
--- Order 16
+-- Order 16 (Skapad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (1,1,1,3,1,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (16,'Skapad','2025-09-11 08:00');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(16,'sensor-001',5.2,60,'2025-09-11 08:00'),
-(16,'sensor-001',5.5,61,'2025-09-11 08:30'),
-(16,'sensor-001',5.1,59,'2025-09-11 09:00');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (16,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(16,1,'2025-09-11 08:00');
 
--- Order 17
+-- Order 17 (Lastad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (1,1,1,2,2,2);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (17,'Lastad','2025-09-11 08:45');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(17,'sensor-001',7.1,72,'2025-09-11 08:45'),
-(17,'sensor-001',7.5,74,'2025-09-11 09:15'),
-(17,'sensor-001',6.8,71,'2025-09-11 09:45');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (17,10);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(17,1,'2025-09-11 08:30'),
+(17,2,'2025-09-11 08:45');
 
--- Order 18
+-- Order 18 (Levererad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (1,1,1,1,3,3);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (18,'Levererad','2025-09-11 10:15');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(18,'sensor-001',4.5,55,'2025-09-11 09:00'),
-(18,'sensor-001',4.9,57,'2025-09-11 09:30'),
-(18,'sensor-001',4.6,56,'2025-09-11 10:00');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (18,0);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(18,1,'2025-09-11 09:00'),
+(18,2,'2025-09-11 09:30'),
+(18,3,'2025-09-11 10:15');
 
--- Order 19
+-- Order 19 (Skapad)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (1,1,1,3,2,1);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (19,'Skapad','2025-09-11 07:45');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(19,'sensor-001',6.0,65,'2025-09-11 07:45'),
-(19,'sensor-001',6.3,66,'2025-09-11 08:15'),
-(19,'sensor-001',6.1,64,'2025-09-11 08:45');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (19,5);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(19,1,'2025-09-11 07:45');
 
--- Order 20
+-- Order 20 (Åter)
 INSERT INTO "Order" ("RouteId","ExpectedTempId","ExpectedMoistId","TransportId","SenderId","RecipientId")
 VALUES (1,1,1,2,1,2);
-INSERT INTO "OrderStatus" ("OrderId","Status","TimeStamp")
-VALUES (20,'Åter','2025-09-11 11:00');
-INSERT INTO "MeasurementTemp" ("OrderId","SensorId","Temp","Humidity","CurrentTime") VALUES
-(20,'sensor-001',8.0,75,'2025-09-11 09:30'),
-(20,'sensor-001',8.4,77,'2025-09-11 10:00'),
-(20,'sensor-001',7.9,74,'2025-09-11 10:30');
-INSERT INTO "TimeOutsideRange" ("OrderId","TimeMinutes") VALUES (20,20);
+INSERT INTO "OrderStatus" ("OrderId","OrdersequenceId","TimeStamp") VALUES
+(20,1,'2025-09-11 09:30'),
+(20,2,'2025-09-11 10:00'),
+(20,3,'2025-09-11 10:30'),
+(20,4,'2025-09-11 11:00');

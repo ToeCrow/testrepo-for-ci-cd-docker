@@ -143,6 +143,63 @@ app.get('/orders', async (req, res) => {
   }
 });
 
+// POST /orders/:orderId/next-status
+app.post('/orders/:orderId/next-status', async (req, res) => {
+  const { orderId } = req.params;
+
+  try {
+    // 1. Kontrollera att ordern finns
+    const orderCheck = await pool.query(
+      `SELECT 1 FROM "Order" WHERE "Id" = $1`,
+      [orderId]
+    );
+
+    if (orderCheck.rowCount === 0) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // 2. Hämta nuvarande högsta status för ordern
+    const currentStatusResult = await pool.query(
+      `SELECT MAX(os."OrdersequenceId") AS current_sequence
+       FROM "OrderStatus" os
+       WHERE os."OrderId" = $1`,
+      [orderId]
+    );
+
+    const currentSequence = currentStatusResult.rows[0].current_sequence || 0;
+
+    // 3. Hämta nästa status i OrderSequence
+    const nextStatusResult = await pool.query(
+      `SELECT "Id", "Name"
+       FROM "OrderSequence"
+       WHERE "sequence" > $1
+       ORDER BY "sequence" ASC
+       LIMIT 1`,
+      [currentSequence]
+    );
+
+    if (nextStatusResult.rowCount === 0) {
+      return res.status(400).json({ message: 'Order is already at the final status' });
+    }
+
+    const nextStatus = nextStatusResult.rows[0];
+
+    // 4. Lägg till nästa status i OrderStatus
+    const insertResult = await pool.query(
+      `INSERT INTO "OrderStatus" ("OrderId", "OrdersequenceId", "TimeStamp")
+       VALUES ($1, $2, CURRENT_TIMESTAMP)
+       RETURNING *`,
+      [orderId, nextStatus.Id]
+    );
+
+    res.json({ message: 'Next status added', status: insertResult.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
 
 app.listen(port, () => {
   console.log(`API listening on port ${port}`);
