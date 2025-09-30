@@ -201,6 +201,6 @@ app.post('/orders/:orderId/next-status', async (req, res) => {
 
 
 
-app.listen(port, () => {
-  console.log(`API listening on port ${port}`);
+app.listen(3000, '0.0.0.0', () => {
+  console.log('Server running on port 3000');
 });
