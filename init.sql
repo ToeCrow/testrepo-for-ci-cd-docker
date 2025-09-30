@@ -65,6 +65,13 @@ CREATE TABLE "Order" (
   "RecipientId" INT REFERENCES "Recipient"("Id")
 );
 
+-- ORDERSEQUENCES
+CREATE TABLE "OrderSequence" (
+  "Id" SERIAL PRIMARY KEY,
+  "Name" VARCHAR(50) UNIQUE NOT NULL,
+  "sequence" INT NOT NULL
+);
+
 -- ORDERSTATUS
 CREATE TABLE "OrderStatus" (
   "Id" SERIAL PRIMARY KEY,
@@ -72,13 +79,6 @@ CREATE TABLE "OrderStatus" (
   "OrdersequenceId" INT REFERENCES "OrderSequence"("Id"),
   "TimeStamp" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- ORDERSEQUENCES
-CREATE TABLE "OrderSequence" (
-  "Id" SERIAL PRIMARY KEY,
-  "Name" VARCHAR(50) UNIQUE NOT NULL,
-  "sequence" INT NOT NULL
-)
 
 -- SENSOR
 CREATE TABLE "Sensor" (
