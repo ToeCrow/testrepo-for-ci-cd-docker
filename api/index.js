@@ -45,14 +45,14 @@ app.get('/orders', async (req, res) => {
         o."Id" AS "id",
         o."Id" AS "sändningsnr",
         r."Code" AS "rutt",
-        json_build_object('min', et."Min"::FLOAT, 'max', et."Max"::FLOAT) AS "expectedTemp",
+        json_build_object('name', et."Name", 'min', et."Min"::FLOAT, 'max', et."Max"::FLOAT) AS "expectedTemp",
         COALESCE(mt."Temp"::FLOAT, 0) AS "currentTemp",
         COALESCE(mt."Humidity"::FLOAT, 0) AS "currentHumidity",
         COALESCE(MIN(mtemp."Temp")::FLOAT, 0) AS "minTempMeasured",
         COALESCE(MAX(mtemp."Temp")::FLOAT, 0) AS "maxTempMeasured",
         COALESCE(MIN(mtemp."Humidity")::FLOAT, 0) AS "minHumidityMeasured",
         COALESCE(MAX(mtemp."Humidity")::FLOAT, 0) AS "maxHumidityMeasured",
-        json_build_object('min', em."Min"::FLOAT, 'max', em."Max"::FLOAT) AS "expectedHumidity",
+        json_build_object('name', em."Name", 'min', em."Min"::FLOAT, 'max', em."Max"::FLOAT) AS "expectedHumidity",
         COALESCE(tor."TimeMinutes", 0) AS "timeOutsideRange",
         json_build_object('text', os."StatusName", 'timestamp', os."TimeStamp") AS "status",
         json_build_object('id', t."Id", 'name', t."Name") AS "transport",
@@ -81,8 +81,11 @@ app.get('/orders', async (req, res) => {
       LEFT JOIN "Transport" t ON o."TransportId" = t."Id"
       LEFT JOIN "Sender" s ON o."SenderId" = s."Id"
       GROUP BY 
-        o."Id", r."Code", et."Min", et."Max", em."Min", em."Max",
-        mt."Temp", mt."Humidity", tor."TimeMinutes",
+        o."Id", r."Code",
+        et."Name", et."Min", et."Max",
+        em."Name", em."Min", em."Max",
+        mt."Temp", mt."Humidity",
+        tor."TimeMinutes",
         os."StatusName", os."TimeStamp",
         t."Id", t."Name",
         s."Id", s."Name"
@@ -91,10 +94,11 @@ app.get('/orders', async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching orders:", err);
+    res.status(500).json({ error: "Serverfel vid hämtning av ordrar" });
   }
 });
+
 
 
 // POST /orders/:orderId/next-status
