@@ -99,7 +99,133 @@ app.get('/orders', async (req, res) => {
   }
 });
 
+app.get("/order/:sändningsnr", async (req, res) => {
+  const { sändningsnr } = req.params;
 
+  try {
+    const client = await pool.connect();
+
+    // Hämta order med joins på alla relaterade tabeller
+    const orderQuery = `
+      SELECT 
+        o."Id",
+        o."Id" AS "sändningsnr",
+        r."Name" AS "rutt",
+        et."Name" AS "expectedTempName",
+        et."Min" AS "expectedTempMin",
+        et."Max" AS "expectedTempMax",
+        em."Name" AS "expectedHumidityName",
+        em."Min" AS "expectedHumidityMin",
+        em."Max" AS "expectedHumidityMax",
+        t."Name" AS "transportName",
+        s."Name" AS "senderName",
+        s."Adress1" AS "senderAddress",
+        sp."Postnummer" AS "senderPostcode",
+        sp."Postadress" AS "senderCity",
+        rcp."Name" AS "recipientName",
+        rcp."Adress1" AS "recipientAddress",
+        rp."Postnummer" AS "recipientPostcode",
+        rp."Postadress" AS "recipientCity"
+      FROM "Order" o
+      LEFT JOIN "Route" r ON o."RouteId" = r."Id"
+      LEFT JOIN "ExpectedTemp" et ON o."ExpectedTempId" = et."Id"
+      LEFT JOIN "ExpectedMoist" em ON o."ExpectedMoistId" = em."Id"
+      LEFT JOIN "Transport" t ON o."TransportId" = t."Id"
+      LEFT JOIN "Sender" s ON o."SenderId" = s."Id"
+      LEFT JOIN "Postadress" sp ON s."PostadressId" = sp."Id"
+      LEFT JOIN "Recipient" rcp ON o."RecipientId" = rcp."Id"
+      LEFT JOIN "Postadress" rp ON rcp."PostadressId" = rp."Id"
+      WHERE o."Id" = $1
+    `;
+    const orderResult = await client.query(orderQuery, [sändningsnr]);
+
+    if (orderResult.rowCount === 0) {
+      client.release();
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    const order = orderResult.rows[0];
+
+    // Hämta statushistorik
+    const statusResult = await client.query(
+      `
+      SELECT os."TimeStamp", osq."Name" AS "statusText"
+      FROM "OrderStatus" os
+      JOIN "OrderSequence" osq ON os."OrdersequenceId" = osq."Id"
+      WHERE os."OrderId" = $1
+      ORDER BY os."TimeStamp" ASC
+    `,
+      [sändningsnr]
+    );
+
+    // Hämta temperatur- och fuktmätningar
+    const measurementsResult = await client.query(
+      `
+      SELECT "Temp", "Humidity", "CurrentTime"
+      FROM "MeasurementTemp"
+      WHERE "OrderId" = $1
+      ORDER BY "CurrentTime" ASC
+    `,
+      [sändningsnr]
+    );
+
+    // Tid utanför range
+    const timeOutsideResult = await client.query(
+      `
+      SELECT "TimeMinutes"
+      FROM "TimeOutsideRange"
+      WHERE "OrderId" = $1
+    `,
+      [sändningsnr]
+    );
+
+    client.release();
+
+    const response = {
+      id: order.Id,
+      sändningsnr: order.sändningsnr,
+      rutt: order.rutt,
+      expectedTemp: {
+        name: order.expectedTempName,
+        min: order.expectedTempMin,
+        max: order.expectedTempMax,
+      },
+      expectedHumidity: {
+        name: order.expectedHumidityName,
+        min: order.expectedHumidityMin,
+        max: order.expectedHumidityMax,
+      },
+      transport: { name: order.transportName },
+      sender: {
+        name: order.senderName,
+        address: order.senderAddress,
+        postcode: order.senderPostcode,
+        city: order.senderCity,
+      },
+      recipient: {
+        name: order.recipientName,
+        address: order.recipientAddress,
+        postcode: order.recipientPostcode,
+        city: order.recipientCity,
+      },
+      status: statusResult.rows.map((s) => ({
+        text: s.statusText,
+        timestamp: s.TimeStamp,
+      })),
+      measurements: measurementsResult.rows.map((m) => ({
+        temp: m.Temp,
+        humidity: m.Humidity,
+        timestamp: m.CurrentTime,
+      })),
+      timeOutsideRange: timeOutsideResult.rows[0]?.TimeMinutes || 0,
+    };
+
+    return res.json(response);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 // POST /orders/:orderId/next-status
 app.post('/orders/:orderId/next-status', async (req, res) => {
