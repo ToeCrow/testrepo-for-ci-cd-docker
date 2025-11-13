@@ -55,6 +55,7 @@ const pool = new Pool({
 // LOGIN route
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
+  console.log("BODY RECEIVED:", req.body);
 
   try {
     const result = await pool.query('SELECT * FROM "User" WHERE "Username" = $1', [username]);
