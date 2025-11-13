@@ -1,6 +1,10 @@
 import express from "express";
 import pkg from "pg";
 import cors from "cors";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+
+const JWT_SECRET = process.env.JWT_SECRET || "superhemligt";
 
 const { Pool } = pkg;
 const app = express();
@@ -24,6 +28,25 @@ app.use(
   })
 );
 
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+  if (!token) return res.sendStatus(401);
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.sendStatus(403);
+    req.user = user;
+    next();
+  });
+}
+
+function authorizeRole(role) {
+  return (req, res, next) => {
+    if (req.user.role !== role) return res.sendStatus(403);
+    next();
+  };
+}
+
 // ---- Databasanslutning ----
 const pool = new Pool({
   user: process.env.POSTGRES_USER || "postgres",
@@ -36,6 +59,41 @@ const pool = new Pool({
       ? { rejectUnauthorized: false } // krävs för RDS
       : false, // ingen SSL lokalt
 });
+
+// LOGIN route
+app.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const result = await pool.query('SELECT * FROM "User" WHERE "Username" = $1', [username]);
+    const user = result.rows[0];
+
+    if (!user) return res.status(401).json({ message: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, user.PasswordHash);
+    if (!isMatch) return res.status(401).json({ message: "Invalid password" });
+
+    const token = jwt.sign(
+      {
+        sub: user.Id,
+        username: user.Username,
+        role: user.Role,
+      },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({ token });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.get("/admin/data", authenticateToken, authorizeRole("Admin"), (req, res) => {
+  res.json({ secret: "Detta är hemligt admininnehåll!" });
+});
+
 
 // ---- Testroute ----
 app.get("/", async (req, res) => {
