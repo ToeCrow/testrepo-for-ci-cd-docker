@@ -29,10 +29,13 @@ const pool = new Pool({
   user: process.env.POSTGRES_USER || "postgres",
   host: process.env.POSTGRES_HOST || "trackapp-db.cfmqcwquqry6.eu-north-1.rds.amazonaws.com",
   database: process.env.POSTGRES_DB || "trackapp",
-  password: process.env.POSTGRES_PASSWORD,
-  port: process.env.POSTGRES_PORT || 5432,
-  ssl: { rejectUnauthorized: false }, // krävs för RDS
+  password: process.env.POSTGRES_PASSWORD || "postgres",
+  port: Number(process.env.POSTGRES_PORT) || 5432,
+  ssl: process.env.NODE_ENV === "production"
+    ? { rejectUnauthorized: false }  // krävs för RDS
+    : false,                         // ingen SSL lokalt
 });
+
 
 // ---- Testroute: Kolla att API + DB funkar ----
 app.get("/", async (req, res) => {
