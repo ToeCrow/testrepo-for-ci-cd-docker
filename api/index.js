@@ -14,6 +14,7 @@ const port = process.env.PORT || 8080;
 const allowedOrigin = [
   "http://localhost:5173",
   "http://trackapp-api-env.eba-cjwxp2te.eu-north-1.elasticbeanstalk.com",
+  "http://trackapp-frontend.s3-website.eu-north-1.amazonaws.com",
 ];
 
 app.use(express.json());   
