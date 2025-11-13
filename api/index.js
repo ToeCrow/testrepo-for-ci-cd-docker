@@ -8,6 +8,8 @@ const JWT_SECRET = process.env.JWT_SECRET || "superhemligt";
 
 const { Pool } = pkg;
 const app = express();
+app.use(express.json());
+
 const port = process.env.PORT || 8080;
 
 app.use(cors({
@@ -16,7 +18,6 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-app.use(express.json());
 
 
 function authenticateToken(req, res, next) {
