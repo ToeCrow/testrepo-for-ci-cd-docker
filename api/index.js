@@ -10,26 +10,32 @@ const { Pool } = pkg;
 const app = express();
 const port = process.env.PORT || 8080;
 
-// ---- Tillåtna origins (CORS) ----
-const allowedOrigin = [
-  "http://localhost:5173",
-  "http://trackapp-api-env.eba-cjwxp2te.eu-north-1.elasticbeanstalk.com",
-  "http://trackapp-frontend.s3-website.eu-north-1.amazonaws.com",
-];
-
 app.use(express.json());   
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigin.includes(origin)) return callback(null, true);
-      if (origin.startsWith("http://localhost:517"))
-        return callback(new Error("⚠️ Kör dev på port 5173, inte " + origin));
+
+      const allowed = [
+        "http://localhost:5173",
+      
+        "https://trackapp-api-env.eba-cjwxp2te.eu-north-1.elasticbeanstalk.com",
+        "https://trackapp.se",
+        "https://www.trackapp.se",
+        "http://trackapp-frontend.s3-website.eu-north-1.amazonaws.com/"
+      ];
+
+      if (allowed.includes(origin)) return callback(null, true);
+
+      // tillåt cloudfront automatiskt
+      if (origin.includes("cloudfront.net")) return callback(null, true);
+
       return callback(new Error("❌ Origin not allowed: " + origin));
     },
   })
 );
+
 
 function authenticateToken(req, res, next) {
   const authHeader = req.headers["authorization"];
