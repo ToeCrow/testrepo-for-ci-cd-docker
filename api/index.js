@@ -16,6 +16,8 @@ const allowedOrigin = [
   "http://trackapp-api-env.eba-cjwxp2te.eu-north-1.elasticbeanstalk.com",
 ];
 
+app.use(express.json());   
+
 app.use(
   cors({
     origin: (origin, callback) => {
