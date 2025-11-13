@@ -4,7 +4,7 @@ import cors from "cors";
 
 const { Pool } = pkg;
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
 // ---- Tillåtna origins (CORS) ----
 const allowedOrigin = [
@@ -31,13 +31,13 @@ const pool = new Pool({
   database: process.env.POSTGRES_DB || "trackapp",
   password: process.env.POSTGRES_PASSWORD || "postgres",
   port: Number(process.env.POSTGRES_PORT) || 5432,
-  ssl: process.env.NODE_ENV === "production"
-    ? { rejectUnauthorized: false }  // krävs för RDS
-    : false,                         // ingen SSL lokalt
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false } // krävs för RDS
+      : false, // ingen SSL lokalt
 });
 
-
-// ---- Testroute: Kolla att API + DB funkar ----
+// ---- Testroute ----
 app.get("/", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
@@ -48,11 +48,11 @@ app.get("/", async (req, res) => {
   }
 });
 
-// ---- Hämta alla ordrar ----
+// ---- /orders ----
 app.get("/orders", async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT 
+      SELECT
         o."Id" AS "id",
         o."Id" AS "sändningsnr",
         r."Code" AS "rutt",
@@ -91,7 +91,7 @@ app.get("/orders", async (req, res) => {
       LEFT JOIN "MeasurementTemp" mtemp ON o."Id" = mtemp."OrderId"
       LEFT JOIN "Transport" t ON o."TransportId" = t."Id"
       LEFT JOIN "Sender" s ON o."SenderId" = s."Id"
-      GROUP BY 
+      GROUP BY
         o."Id", r."Code",
         et."Name", et."Min", et."Max",
         em."Name", em."Min", em."Max",
@@ -110,7 +110,7 @@ app.get("/orders", async (req, res) => {
   }
 });
 
-// ---- Hämta en specifik order ----
+// ---- /order/:sändningsnr ----
 app.get("/order/:sändningsnr", async (req, res) => {
   const { sändningsnr } = req.params;
 
@@ -118,7 +118,7 @@ app.get("/order/:sändningsnr", async (req, res) => {
     const client = await pool.connect();
 
     const orderQuery = `
-      SELECT 
+      SELECT
         o."Id",
         o."Id" AS "sändningsnr",
         r."Name" AS "rutt",
@@ -217,15 +217,15 @@ app.get("/order/:sändningsnr", async (req, res) => {
         city: order.recipientCity,
       },
       status: statusResult.rows.map((s) => ({
-        text: s.statustext,
-        timestamp: s.timestamp,
+        text: s.statusText,
+        timestamp: s.TimeStamp,
       })),
       measurements: measurementsResult.rows.map((m) => ({
-        temp: m.temp,
-        humidity: m.humidity,
-        timestamp: m.currenttime,
+        temp: m.Temp,
+        humidity: m.Humidity,
+        timestamp: m.CurrentTime,
       })),
-      timeOutsideRange: timeOutsideResult.rows[0]?.timeminutes || 0,
+      timeOutsideRange: timeOutsideResult.rows[0]?.TimeMinutes || 0,
     };
 
     return res.json(response);
@@ -235,7 +235,7 @@ app.get("/order/:sändningsnr", async (req, res) => {
   }
 });
 
-// ---- POST: Lägg till nästa status ----
+// ---- POST /orders/:orderId/next-status ----
 app.post("/orders/:orderId/next-status", async (req, res) => {
   const { orderId } = req.params;
 
