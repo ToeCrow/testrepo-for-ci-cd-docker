@@ -1,44 +1,52 @@
-import express from 'express';
-import pkg from 'pg';
-import cors from 'cors';
+import express from "express";
+import pkg from "pg";
+import cors from "cors";
 
 const { Pool } = pkg;
-
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
+// ---- Tillåtna origins (CORS) ----
 const allowedOrigin = [
   "http://localhost:5173",
-  "https://app.trackapp.se"  // placeholder för prod
+  "http://trackapp-api-env.eba-cjwxp2te.eu-north-1.elasticbeanstalk.com",
 ];
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Ingen origin = server-till-server eller mobilclient → tillåt
-    if (!origin) return callback(null, true);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigin.includes(origin)) return callback(null, true);
+      if (origin.startsWith("http://localhost:517"))
+        return callback(new Error("⚠️ Kör dev på port 5173, inte " + origin));
+      return callback(new Error("❌ Origin not allowed: " + origin));
+    },
+  })
+);
 
-    // Om origin finns i listan → tillåt
-    if (allowedOrigin.includes(origin)) {
-      return callback(null, true);
-    }
-
-    // Om origin är localhost på fel 517x-port → ge tydligt meddelande
-    if (origin.startsWith("http://localhost:517")) {
-      return callback(new Error("⚠️ Kör dev på port 5173, inte " + origin));
-    }
-
-    // Alla andra → blockeras
-    return callback(new Error("❌ Origin not allowed: " + origin));
-  }
-}));
-
-
-
+// ---- Databasanslutning ----
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  user: process.env.POSTGRES_USER || "postgres",
+  host: process.env.POSTGRES_HOST || "trackapp-db.cfmqcwquqry6.eu-north-1.rds.amazonaws.com",
+  database: process.env.POSTGRES_DB || "trackapp",
+  password: process.env.POSTGRES_PASSWORD,
+  port: process.env.POSTGRES_PORT || 5432,
+  ssl: { rejectUnauthorized: false }, // krävs för RDS
 });
 
-app.get('/orders', async (req, res) => {
+// ---- Testroute: Kolla att API + DB funkar ----
+app.get("/", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json({ status: "ok", db_time: result.rows[0].now });
+  } catch (err) {
+    console.error("DB connection failed:", err);
+    res.status(500).json({ error: "DB connection failed" });
+  }
+});
+
+// ---- Hämta alla ordrar ----
+app.get("/orders", async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
@@ -99,13 +107,13 @@ app.get('/orders', async (req, res) => {
   }
 });
 
+// ---- Hämta en specifik order ----
 app.get("/order/:sändningsnr", async (req, res) => {
   const { sändningsnr } = req.params;
 
   try {
     const client = await pool.connect();
 
-    // Hämta order med joins på alla relaterade tabeller
     const orderQuery = `
       SELECT 
         o."Id",
@@ -146,7 +154,6 @@ app.get("/order/:sändningsnr", async (req, res) => {
 
     const order = orderResult.rows[0];
 
-    // Hämta statushistorik
     const statusResult = await client.query(
       `
       SELECT os."TimeStamp", osq."Name" AS "statusText"
@@ -158,7 +165,6 @@ app.get("/order/:sändningsnr", async (req, res) => {
       [sändningsnr]
     );
 
-    // Hämta temperatur- och fuktmätningar
     const measurementsResult = await client.query(
       `
       SELECT "Temp", "Humidity", "CurrentTime"
@@ -169,7 +175,6 @@ app.get("/order/:sändningsnr", async (req, res) => {
       [sändningsnr]
     );
 
-    // Tid utanför range
     const timeOutsideResult = await client.query(
       `
       SELECT "TimeMinutes"
@@ -209,15 +214,15 @@ app.get("/order/:sändningsnr", async (req, res) => {
         city: order.recipientCity,
       },
       status: statusResult.rows.map((s) => ({
-        text: s.statusText,
-        timestamp: s.TimeStamp,
+        text: s.statustext,
+        timestamp: s.timestamp,
       })),
       measurements: measurementsResult.rows.map((m) => ({
-        temp: m.Temp,
-        humidity: m.Humidity,
-        timestamp: m.CurrentTime,
+        temp: m.temp,
+        humidity: m.humidity,
+        timestamp: m.currenttime,
       })),
-      timeOutsideRange: timeOutsideResult.rows[0]?.TimeMinutes || 0,
+      timeOutsideRange: timeOutsideResult.rows[0]?.timeminutes || 0,
     };
 
     return res.json(response);
@@ -227,22 +232,20 @@ app.get("/order/:sändningsnr", async (req, res) => {
   }
 });
 
-// POST /orders/:orderId/next-status
-app.post('/orders/:orderId/next-status', async (req, res) => {
+// ---- POST: Lägg till nästa status ----
+app.post("/orders/:orderId/next-status", async (req, res) => {
   const { orderId } = req.params;
 
   try {
-    // 1. Kontrollera att ordern finns
     const orderCheck = await pool.query(
       `SELECT 1 FROM "Order" WHERE "Id" = $1`,
       [orderId]
     );
 
     if (orderCheck.rowCount === 0) {
-      return res.status(404).json({ message: 'Order not found' });
+      return res.status(404).json({ message: "Order not found" });
     }
 
-    // 2. Hämta nuvarande högsta status för ordern
     const currentStatusResult = await pool.query(
       `SELECT MAX(os."OrdersequenceId") AS current_sequence
        FROM "OrderStatus" os
@@ -252,7 +255,6 @@ app.post('/orders/:orderId/next-status', async (req, res) => {
 
     const currentSequence = currentStatusResult.rows[0].current_sequence || 0;
 
-    // 3. Hämta nästa status i OrderSequence
     const nextStatusResult = await pool.query(
       `SELECT "Id", "Name"
        FROM "OrderSequence"
@@ -263,12 +265,13 @@ app.post('/orders/:orderId/next-status', async (req, res) => {
     );
 
     if (nextStatusResult.rowCount === 0) {
-      return res.status(400).json({ message: 'Order is already at the final status' });
+      return res
+        .status(400)
+        .json({ message: "Order is already at the final status" });
     }
 
     const nextStatus = nextStatusResult.rows[0];
 
-    // 4. Lägg till nästa status i OrderStatus
     const insertResult = await pool.query(
       `INSERT INTO "OrderStatus" ("OrderId", "OrdersequenceId", "TimeStamp")
        VALUES ($1, $2, CURRENT_TIMESTAMP)
@@ -276,15 +279,14 @@ app.post('/orders/:orderId/next-status', async (req, res) => {
       [orderId, nextStatus.Id]
     );
 
-    res.json({ message: 'Next status added', status: insertResult.rows[0] });
+    res.json({ message: "Next status added", status: insertResult.rows[0] });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
-
-
-app.listen(3000, '0.0.0.0', () => {
-  console.log('Server running on port 3000');
+// ---- Starta servern ----
+app.listen(port, "0.0.0.0", () => {
+  console.log(`✅ Server running on port ${port}`);
 });
