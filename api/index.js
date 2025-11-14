@@ -52,6 +52,17 @@ const pool = new Pool({
       : false, // ingen SSL lokalt
 });
 
+app.get("/reset-admin", async (req, res) => {
+  const hash = await bcrypt.hash("admin123", 10);
+  await pool.query(
+    'UPDATE "User" SET "PasswordHash" = $1 WHERE "Username" = $2',
+    [hash, "admin"]
+  );
+
+  res.send("Admin password reset");
+});
+
+
 // LOGIN route
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
