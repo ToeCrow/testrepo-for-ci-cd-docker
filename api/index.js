@@ -13,7 +13,7 @@ app.use(express.json());
 const port = process.env.PORT || 8080;
 
 app.use(cors({
-  origin: "https://d12qw9rpt7plo7.cloudfront.net",
+  origin: "http://trackapp-frontend.s3-website.eu-north-1.amazonaws.com/",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
