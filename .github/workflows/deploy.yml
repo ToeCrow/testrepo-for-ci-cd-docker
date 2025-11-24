@@ -39,5 +39,5 @@ jobs:
           application_name: TrackApp-API
           environment_name: TrackApp-API-env
           region: eu-north-1
-          version_label: v-${{ github.run_number }}
+          version_label: v-${{ github.sha }}
           deployment_package: build/trackapp-api-${{ github.run_number }}.zip
