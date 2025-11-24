@@ -5,10 +5,6 @@ on:
     branches:
       - main
       - develop
-  pull_request:
-    branches:
-      - main
-      - develop
 
 jobs:
   deploy:
@@ -24,7 +20,7 @@ jobs:
           node-version: 22
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --production
         working-directory: api
 
       - name: Zip source code
@@ -32,13 +28,7 @@ jobs:
           mkdir -p build
           cd api
           zip -r ../build/trackapp-api-${{ github.run_number }}.zip . \
-            -x "node_modules/*" \
-               "*.git*" \
-               "*.github*" \
-               "Dockerfile*" \
-               "*.dockerignore" \
-               "README.md" \
-               "tests/*"
+            -x "*.git*" "*.github*" "tests/*"
         shell: bash
 
       - name: Deploy to Elastic Beanstalk
